@@ -3,33 +3,25 @@ package com.example.unisol.commuteongo;
 
 
 import android.app.Dialog;
-import android.content.Context;
 import android.location.Criteria;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.support.v4.app.DialogFragment;
-import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
-import android.support.v4.app.FragmentTransaction;
-
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import android.util.Log;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-public class DriverMapsActivity extends FragmentActivity {
+public class DriverMapsActivity extends FragmentActivity implements LocationListener {
     private int REQUEST_CODE_RECOVER_PLAY_SERVICES = 1001;
     private GoogleMap mMap; // Might be null if Google Play services APK is not available.
     private SupportMapFragment driverMapFragment;
@@ -45,13 +37,16 @@ public class DriverMapsActivity extends FragmentActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_driver_maps);
         setUpMapIfNeeded();
+
+        mMap.clear();
+
         mMap.setMyLocationEnabled(true);
-
-
         LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
         Criteria criteria = new Criteria();
         String provider = service.getBestProvider(criteria, false);
         Location userLocation = service.getLastKnownLocation(provider);
+        service.requestLocationUpdates(provider, 20000, 0, this);
+
         //Location userLocation = mMap.getMyLocation();
         LatLng myLocation = null;
         if (userLocation != null) {
@@ -71,6 +66,24 @@ public class DriverMapsActivity extends FragmentActivity {
         setUpMapIfNeeded();
     }
 
+    @Override
+    public void onLocationChanged(Location location) {
+        // TODO Auto-generated method stub
+    }
+        @Override
+    public void onProviderDisabled(String provider) {
+        // TODO Auto-generated method stub
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+        // TODO Auto-generated method stub
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+        // TODO Auto-generated method stub
+    }
 
     /**
      * Sets up the map if it is possible to do so (i.e., the Google Play services APK is correctly
