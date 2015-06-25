@@ -3,11 +3,13 @@ package com.example.unisol.commuteongo;
 
 
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -58,7 +60,11 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
         mMap.clear();
 
         mMap.setMyLocationEnabled(true);
-        LatLng coord = getLatLongFromAddress();
+        getLatLongFromAddress();
+        /* LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        String provider = service.getBestProvider(criteria, false);
+        service.requestLocationUpdates(provider, 20000, 0, this);
 
         //Location userLocation = mMap.getMyLocation();
         LatLng myLocation = null;
@@ -70,7 +76,7 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
 
             setUpMap(coord.latitude, coord.longitude);
             //setUpMap(47.6356639, -122.3432309);
-        }
+        }*/
     }
 
     @Override
@@ -88,34 +94,106 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
         // TODO Auto-generated method stub
     }
 
-    public LatLng getLatLongFromAddress()
-    {
+    public void getLatLongFromAddress() {
         EditText addressButton = (EditText) findViewById(R.id.drvsrc);
 
         Intent intent = getIntent();
         String youraddress = null;
         if (null != intent) {
-            youraddress= intent.getStringExtra("srcDrvAddress");
+            youraddress = intent.getStringExtra("srcDrvAddress");
         }
 
-        youraddress = "1251%20taylor%20ave%20n%20seattle%20wa";
-        LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
-        Criteria criteria = new Criteria();
-        String provider = service.getBestProvider(criteria, false);
-        Location userLocation = service.getLastKnownLocation(provider);
 
 
-
-        if((youraddress != null) &&
+        if ((youraddress != null) &&
                 !youraddress.toLowerCase().equals("current location")) {
             String uri = "http://maps.google.com/maps/api/geocode/json?address=" +
-                    youraddress + "&sensor=false";
-            HttpGet httpGet = new HttpGet(uri);
-            HttpClient client = new DefaultHttpClient();
-            HttpResponse response;
+                    youraddress.trim().replaceAll(" +", "%20") + "&sensor=false";
+
+            StringBuilder stringBuilder;
+
+
+            AsycnGeoCode asyncTask = new AsycnGeoCode(new AsyncResponse() {
+
+                @Override
+                public void processFinish(StringBuilder output) {
+                    LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
+                    Criteria criteria = new Criteria();
+                    String provider = service.getBestProvider(criteria, false);
+                    Location userLocation = service.getLastKnownLocation(provider);
+                    JSONObject jsonObject = new JSONObject();
+                    LatLng coord;
+
+                    try {
+                        jsonObject = new JSONObject(output.toString());
+
+                        double lng = ((JSONArray) jsonObject.get("results")).getJSONObject(0)
+                                .getJSONObject("geometry").getJSONObject("location")
+                                .getDouble("lng");
+
+                        double lat = ((JSONArray) jsonObject.get("results")).getJSONObject(0)
+                                .getJSONObject("geometry").getJSONObject("location")
+                                .getDouble("lat");
+                        coord = new LatLng(lat, lng);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        coord = new LatLng(userLocation.getLatitude(), userLocation.getLongitude());
+                    }
+
+                    //Location userLocation = mMap.getMyLocation();
+                    LatLng myLocation = null;
+                    if (coord != null) {
+                        //myLocation = new LatLng(47.6356639, -122.3432309);
+                        myLocation = new LatLng(coord.latitude, coord.longitude);
+                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation,
+                                mMap.getMaxZoomLevel() - 5));
+
+                        setUpMap(coord.latitude, coord.longitude);
+                        //setUpMap(47.6356639, -122.3432309);
+                    }
+
+                }
+
+            });
+
+            asyncTask.execute(uri);
+        }
+    }
+
+    public interface AsyncResponse
+    {
+        public void processFinish(StringBuilder output);
+    }
+
+    protected class AsycnGeoCode extends AsyncTask<String, Void, StringBuilder> {
+        public AsyncResponse delegate = null;//Call back interface
+        ProgressDialog mProgressDialog;
+
+        public AsycnGeoCode(AsyncResponse asyncResponse) {
+            delegate = asyncResponse;//Assigning call back interfacethrough constructor
+        }
+
+        @Override
+        protected void onPostExecute(StringBuilder result) {
+            mProgressDialog.dismiss();
+            delegate.processFinish(result);
+        }
+
+        @Override
+        protected void onPreExecute() {
+            mProgressDialog = ProgressDialog.show(DriverMapsActivity.this,
+                    "Loading...", "Data is Loading...");
+        }
+
+        @Override
+        protected StringBuilder doInBackground(String... params) {
             StringBuilder stringBuilder = new StringBuilder();
 
             try {
+                HttpGet httpGet = new HttpGet(params[0]);
+                HttpClient client = new DefaultHttpClient();
+                HttpResponse response;
+
                 response = client.execute(httpGet);
                 HttpEntity entity = response.getEntity();
                 InputStream stream = entity.getContent();
@@ -128,26 +206,9 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
-            JSONObject jsonObject = new JSONObject();
-            try {
-                jsonObject = new JSONObject(stringBuilder.toString());
-
-                double lng = ((JSONArray) jsonObject.get("results")).getJSONObject(0)
-                        .getJSONObject("geometry").getJSONObject("location")
-                        .getDouble("lng");
-
-                double lat = ((JSONArray) jsonObject.get("results")).getJSONObject(0)
-                        .getJSONObject("geometry").getJSONObject("location")
-                        .getDouble("lat");
-                return new LatLng(lat, lng);
-            } catch (JSONException e) {
-                e.printStackTrace();
-                return new LatLng(userLocation.getLatitude(), userLocation.getLongitude());
-            }
+            // your network operation
+            return stringBuilder;
         }
-        service.requestLocationUpdates(provider, 20000, 0, this);
-        return new LatLng(userLocation.getLatitude(), userLocation.getLongitude());
     }
 
     @Override
