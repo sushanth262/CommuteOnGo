@@ -3,6 +3,7 @@ package com.example.unisol.commuteongo;
 
 
 import android.app.Dialog;
+import android.content.Intent;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -11,6 +12,8 @@ import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationRequest;
+
+import android.widget.EditText;
 import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -20,6 +23,19 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.io.InputStream;
 
 public class DriverMapsActivity extends FragmentActivity implements LocationListener {
     private int REQUEST_CODE_RECOVER_PLAY_SERVICES = 1001;
@@ -36,26 +52,23 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_driver_maps);
+
         setUpMapIfNeeded();
 
         mMap.clear();
 
         mMap.setMyLocationEnabled(true);
-        LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
-        Criteria criteria = new Criteria();
-        String provider = service.getBestProvider(criteria, false);
-        Location userLocation = service.getLastKnownLocation(provider);
-        service.requestLocationUpdates(provider, 20000, 0, this);
+        LatLng coord = getLatLongFromAddress();
 
         //Location userLocation = mMap.getMyLocation();
         LatLng myLocation = null;
-        if (userLocation != null) {
+        if (coord != null) {
             //myLocation = new LatLng(47.6356639, -122.3432309);
-            myLocation = new LatLng(userLocation.getLatitude(), userLocation.getLongitude());
+            myLocation = new LatLng(coord.latitude, coord.longitude);
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation,
                     mMap.getMaxZoomLevel() - 5));
 
-            setUpMap(userLocation.getLatitude(), userLocation.getLongitude());
+            setUpMap(coord.latitude, coord.longitude);
             //setUpMap(47.6356639, -122.3432309);
         }
     }
@@ -73,6 +86,68 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
         @Override
     public void onProviderDisabled(String provider) {
         // TODO Auto-generated method stub
+    }
+
+    public LatLng getLatLongFromAddress()
+    {
+        EditText addressButton = (EditText) findViewById(R.id.drvsrc);
+
+        Intent intent = getIntent();
+        String youraddress = null;
+        if (null != intent) {
+            youraddress= intent.getStringExtra("srcDrvAddress");
+        }
+
+        youraddress = "1251%20taylor%20ave%20n%20seattle%20wa";
+        LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        String provider = service.getBestProvider(criteria, false);
+        Location userLocation = service.getLastKnownLocation(provider);
+
+
+
+        if((youraddress != null) &&
+                !youraddress.toLowerCase().equals("current location")) {
+            String uri = "http://maps.google.com/maps/api/geocode/json?address=" +
+                    youraddress + "&sensor=false";
+            HttpGet httpGet = new HttpGet(uri);
+            HttpClient client = new DefaultHttpClient();
+            HttpResponse response;
+            StringBuilder stringBuilder = new StringBuilder();
+
+            try {
+                response = client.execute(httpGet);
+                HttpEntity entity = response.getEntity();
+                InputStream stream = entity.getContent();
+                int b;
+                while ((b = stream.read()) != -1) {
+                    stringBuilder.append((char) b);
+                }
+            } catch (ClientProtocolException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            JSONObject jsonObject = new JSONObject();
+            try {
+                jsonObject = new JSONObject(stringBuilder.toString());
+
+                double lng = ((JSONArray) jsonObject.get("results")).getJSONObject(0)
+                        .getJSONObject("geometry").getJSONObject("location")
+                        .getDouble("lng");
+
+                double lat = ((JSONArray) jsonObject.get("results")).getJSONObject(0)
+                        .getJSONObject("geometry").getJSONObject("location")
+                        .getDouble("lat");
+                return new LatLng(lat, lng);
+            } catch (JSONException e) {
+                e.printStackTrace();
+                return new LatLng(userLocation.getLatitude(), userLocation.getLongitude());
+            }
+        }
+        service.requestLocationUpdates(provider, 20000, 0, this);
+        return new LatLng(userLocation.getLatitude(), userLocation.getLongitude());
     }
 
     @Override

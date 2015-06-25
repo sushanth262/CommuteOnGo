@@ -1,0 +1,66 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:layout_height="match_parent" android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    tools:context="com.example.unisol.commuteongo.DriverRouteActivity">
+    <RelativeLayout
+        android:id="@+id/driverlayout"
+        android:orientation="vertical"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_marginTop="30dp"
+        android:layout_marginBottom="30dp"
+        android:gravity="center">
+        <EditText android:text="Current Location"
+            android:textColor="#d3d3d3"
+            android:id="@+id/drvsrc"
+            android:textSize="25sp"
+            android:layout_marginTop="30dp"
+            android:layout_marginBottom="30dp"
+            android:orientation="vertical"
+            android:layout_width="fill_parent"
+            android:state_pressed="true"
+            android:layout_marginLeft="1dp"
+            android:layout_marginRight="1dp"
+            android:padding="17dp"
+            android:layout_height="wrap_content"
+            android:background="@drawable/rounded_edittext" />
+
+        <EditText android:text="Enter Destination"
+            android:id="@+id/drvdest"
+            android:textColor="#d3d3d3"
+            android:layout_marginTop="30dp"
+            android:layout_marginBottom="30dp"
+            android:layout_below="@+id/drvsrc"
+            android:textSize="25sp"
+            android:orientation="vertical"
+            android:layout_width="fill_parent"
+            android:state_pressed="true"
+
+            android:layout_marginLeft="1dp"
+            android:layout_marginRight="1dp"
+            android:padding="17dp"
+            android:layout_height="wrap_content"
+            android:background="@drawable/rounded_edittext"/>
+
+        <Button
+            android:id = "@+id/drvroute"
+            android:layout_marginTop="30dp"
+            android:layout_marginBottom="30dp"
+            android:layout_width="fill_parent"
+            android:layout_below="@+id/drvdest"
+            android:layout_height="wrap_content"
+            android:textSize="24sp"
+            android:layout_margin="10dp"
+            android:padding="24dp"
+            android:text="Route"
+            android:background="@drawable/rounded_button"/>
+
+    </RelativeLayout>
+
+    <RelativeLayout android:layout_weight="1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+</RelativeLayout>

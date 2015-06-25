@@ -5,29 +5,28 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Button;
-import android.view.View.OnClickListener;
-import android.widget.Toast;
 import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 
-import com.google.android.gms.maps.MapFragment;
 
-public class MainActivity extends Activity {
+public class DriverRouteActivity extends Activity {
 
-    Button b1,b2;
+    Button b1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_driver_route);
 
-        // Driver/Passenger button set up
-        b1 = (Button) findViewById(R.id.DriverButton);
-        b2 = (Button) findViewById(R.id.PassengerButton);
-
-        b1.setOnClickListener(new OnClickListener() {
+        b1 = (Button) findViewById(R.id.drvroute);
+        b1.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                Intent intent = new Intent(v.getContext(), DriverRouteActivity.class);
+                Intent intent = new Intent(v.getContext(), DriverMapsActivity.class);
+                EditText srcButton = (EditText) findViewById(R.id.drvsrc);
+                EditText destButton = (EditText) findViewById(R.id.drvsrc);
+                intent.putExtra("srcDrvAddress", srcButton.getText().toString());
+                intent.putExtra("destDrvAddress", destButton.getText().toString());
                 startActivity(intent);
 
              /*   Toast msg = Toast.makeText(getBaseContext(),
@@ -35,21 +34,12 @@ public class MainActivity extends Activity {
                 msg.show();*/
             }
         });
-
-        b2.setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-                Toast msg = Toast.makeText(getBaseContext(),
-                        "You have clicked Button 2", Toast.LENGTH_LONG);
-                msg.show();
-            }
-        });
-
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
+        getMenuInflater().inflate(R.menu.menu_driver_route, menu);
         return true;
     }
 
