@@ -75,7 +75,7 @@ public class Route {
 
     }
 
-    public boolean drawRoute(GoogleMap map, Context c, ArrayList<LatLng> points, String language, boolean optimize)
+    public boolean drawRoute(GoogleMap map,Context c, ArrayList<LatLng> points, String language, boolean optimize)
     {
         mMap = map;
         context = c;
@@ -301,6 +301,15 @@ public class Route {
             JSONObject overviewPolylines = routes.getJSONObject("overview_polyline");
             String encodedString = overviewPolylines.getString("points");
             List<LatLng> list = decodePoly(encodedString);
+            PolylineOptions options = new PolylineOptions().width(5).color(Color.BLUE).geodesic(true);
+            for (int z = 0; z < list.size(); z++)
+            {
+                LatLng point = list.get(z);
+                options.add(point);
+            }
+
+            Polyline line = mMap.addPolyline(options);
+            /*
 
             for(int z = 0; z<list.size()-1;z++){
                 LatLng src= list.get(z);
@@ -309,7 +318,7 @@ public class Route {
                         .add(new LatLng(src.latitude, src.longitude), new LatLng(dest.latitude,   dest.longitude))
                         .width(4)
                         .color(Color.BLUE).geodesic(true));
-            }
+            }*/
 
 
             if(withSteps)

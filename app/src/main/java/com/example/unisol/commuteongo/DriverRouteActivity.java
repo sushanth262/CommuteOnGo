@@ -20,15 +20,19 @@ public class DriverRouteActivity extends Activity {
         setContentView(R.layout.activity_driver_route);
 
         b1 = (Button) findViewById(R.id.drvroute);
+
         b1.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 Intent intent = new Intent(v.getContext(), DriverMapsActivity.class);
-                EditText srcButton = (EditText) findViewById(R.id.drvsrc);
-                EditText destButton = (EditText) findViewById(R.id.drvsrc);
-                intent.putExtra("srcDrvAddress", srcButton.getText().toString());
-                intent.putExtra("destDrvAddress", destButton.getText().toString());
-                startActivity(intent);
+                EditText srcText;
+                EditText destText;
 
+                srcText = (EditText) findViewById(R.id.drvsrc);
+                destText = (EditText) findViewById(R.id.drvdest);
+                intent.putExtra("srcDrvAddress", srcText.getText().toString());
+                intent.putExtra("destDrvAddress", destText.getText().toString());
+
+                startActivity(intent);
              /*   Toast msg = Toast.makeText(getBaseContext(),
                         "You have clicked Button 1", Toast.LENGTH_LONG);
                 msg.show();*/

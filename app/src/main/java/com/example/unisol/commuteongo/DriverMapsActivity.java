@@ -1,11 +1,11 @@
 package com.example.unisol.commuteongo;
 
-
-
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.location.Address;
 import android.location.Criteria;
+import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -20,26 +20,19 @@ import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class DriverMapsActivity extends FragmentActivity implements LocationListener {
     private int REQUEST_CODE_RECOVER_PLAY_SERVICES = 1001;
@@ -60,26 +53,16 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
         setUpMapIfNeeded();
 
         mMap.clear();
-
         mMap.setMyLocationEnabled(true);
-        getLatLongFromAddress();
-        /* LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
+
+        LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
         Criteria criteria = new Criteria();
         String provider = service.getBestProvider(criteria, false);
         service.requestLocationUpdates(provider, 20000, 0, this);
 
-        //Location userLocation = mMap.getMyLocation();
-        LatLng myLocation = null;
-        if (coord != null) {
-            //myLocation = new LatLng(47.6356639, -122.3432309);
-            myLocation = new LatLng(coord.latitude, coord.longitude);
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation,
-                    mMap.getMaxZoomLevel() - 5));
-
-            setUpMap(coord.latitude, coord.longitude);
-            //setUpMap(47.6356639, -122.3432309);
-        }*/
+        mapAddresses();
     }
+
 
     @Override
     protected void onResume() {
@@ -112,7 +95,7 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
         return null;
     }
 
-    public void getLatLongFromAddress() {
+    public void mapAddresses() {
         EditText addressButton = (EditText) findViewById(R.id.drvsrc);
 
         Intent intent = getIntent();
@@ -121,70 +104,44 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
 
         if (null != intent) {
             srcAddress = formatAddressForUri(intent.getStringExtra("srcDrvAddress"));
-            destAddress = intent.getStringExtra("destDrvAddress");
+            destAddress = formatAddressForUri(intent.getStringExtra("destDrvAddress"));
+            if(srcAddress == null || destAddress == null)
+            {
+                getCurrentLocation();
+                return;
+            }
         }
 
-        if ((srcAddress != null) &&
-                !srcAddress.toLowerCase().equals("current location")) {
-            String uri = "http://maps.google.com/maps/api/geocode/json?address=" +
-                    srcAddress + "&sensor=false";
+        AsycnGeoCode asyncTask = new AsycnGeoCode(new AsyncResponse() {
 
-            StringBuilder stringBuilder;
+            @Override
+            public void processFinish(List<Address> addresses ) {
+                Route rt = new Route();
+                ArrayList<LatLng> coordinates = new ArrayList<LatLng>();
 
-
-            AsycnGeoCode asyncTask = new AsycnGeoCode(new AsyncResponse() {
-
-                @Override
-                public void processFinish(StringBuilder output) {
-                    LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
-                    Criteria criteria = new Criteria();
-                    String provider = service.getBestProvider(criteria, false);
-                    Location userLocation = service.getLastKnownLocation(provider);
-                    JSONObject jsonObject = new JSONObject();
-                    LatLng coord;
-
-                    try {
-                        jsonObject = new JSONObject(output.toString());
-
-                        double lng = ((JSONArray) jsonObject.get("results")).getJSONObject(0)
-                                .getJSONObject("geometry").getJSONObject("location")
-                                .getDouble("lng");
-
-                        double lat = ((JSONArray) jsonObject.get("results")).getJSONObject(0)
-                                .getJSONObject("geometry").getJSONObject("location")
-                                .getDouble("lat");
-                        coord = new LatLng(lat, lng);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                        coord = new LatLng(userLocation.getLatitude(), userLocation.getLongitude());
-                    }
-
-                    //Location userLocation = mMap.getMyLocation();
-                    LatLng myLocation = null;
-                    if (coord != null) {
-                        //myLocation = new LatLng(47.6356639, -122.3432309);
-                        myLocation = new LatLng(coord.latitude, coord.longitude);
-                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation,
-                                mMap.getMaxZoomLevel() - 5));
-
-                        setUpMap(coord.latitude, coord.longitude);
-                        //setUpMap(47.6356639, -122.3432309);
-                    }
-
+                if(addresses.size() == 2) {
+                    LatLng src = new LatLng(addresses.get(0).getLatitude(), addresses.get(0).getLongitude());
+                    coordinates.add(src);
+                    coordinates.add(new LatLng(addresses.get(1).getLatitude(), addresses.get(1).getLongitude()));
+                    setUpMap(addresses.get(0).getLatitude(), addresses.get(0).getLongitude());
+                    setUpMap(addresses.get(1).getLatitude(), addresses.get(1).getLongitude());
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(src,
+                            mMap.getMaxZoomLevel() - 5));
+                    rt.drawRoute(mMap, DriverMapsActivity.this, coordinates, "en", true);
                 }
+            }
 
-            });
+        });
 
-            asyncTask.execute(uri);
-        }
+        asyncTask.execute(srcAddress, destAddress);
     }
 
     public interface AsyncResponse
     {
-        public void processFinish(StringBuilder output);
+        public void processFinish(List<Address> output);
     }
 
-    protected class AsycnGeoCode extends AsyncTask<String, Void, StringBuilder> {
+    protected class AsycnGeoCode extends AsyncTask<String, Void, List<Address>> {
         public AsyncResponse delegate = null;//Call back interface
         ProgressDialog mProgressDialog;
 
@@ -193,7 +150,7 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
         }
 
         @Override
-        protected void onPostExecute(StringBuilder result) {
+        protected void onPostExecute(List<Address> result) {
             mProgressDialog.dismiss();
             delegate.processFinish(result);
         }
@@ -204,11 +161,58 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
                     "Loading...", "Data is Loading...");
         }
 
-        @Override
-        protected StringBuilder doInBackground(String... params) {
-            StringBuilder stringBuilder = new StringBuilder();
-
+        public List<Address> getAddressList(Geocoder coder, String address)
+        {
+            Location loc;
+            List<Address> addresses;
             try {
+                if (address.toLowerCase().equals("current location")) {
+                    loc = getCurrentLocation();
+                    return coder.getFromLocation(loc.getLatitude(), loc.getLongitude(), 5);
+                } else {
+                    return coder.getFromLocationName(address, 5);
+                }
+            }
+            catch(IOException e)
+            {
+                e.printStackTrace();
+                return null;
+            }
+        }
+
+        @Override
+        protected List<Address> doInBackground(String... params) {
+            StringBuilder stringBuilder = new StringBuilder();
+            try {
+
+                if(params.length != 2)
+                {
+                    throw new Exception("Expected two addresses");
+                }
+                Geocoder coder = new Geocoder(DriverMapsActivity.this);
+                List<Address> srcAddresses;
+                List<Address> destAddresses;
+                Location loc;
+
+                srcAddresses = getAddressList(coder, params[0]);
+                destAddresses = getAddressList(coder, params[1]);
+
+                if(srcAddresses ==  null ||
+                        srcAddresses.size() == 0 ||
+                        destAddresses == null ||
+                        destAddresses.size() == 0)
+                {
+                    return null;
+                }
+                return  Arrays.asList(srcAddresses.get(0), destAddresses.get(0));
+            }
+            catch(Exception e)
+            {
+                e.printStackTrace();
+                return null;
+            }
+
+            /*try {
                 HttpGet httpGet = new HttpGet(params[0]);
                 HttpClient client = new DefaultHttpClient();
                 HttpResponse response;
@@ -224,9 +228,9 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
                 e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
-            }
+            }*/
             // your network operation
-            return stringBuilder;
+            //return stringBuilder;
         }
     }
 
@@ -293,6 +297,16 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
      */
     private void setUpMap(double lat, double lng) {
         mMap.addMarker(new MarkerOptions().position(new LatLng(lat, lng)).title("Marker"));
+    }
+
+
+
+    public Location getCurrentLocation()
+    {
+        LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        String provider = service.getBestProvider(criteria, false);
+        return service.getLastKnownLocation(provider);
     }
 }
 
