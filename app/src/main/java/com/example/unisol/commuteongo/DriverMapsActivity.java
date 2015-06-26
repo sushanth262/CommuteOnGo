@@ -38,6 +38,8 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.HashMap;
 
 public class DriverMapsActivity extends FragmentActivity implements LocationListener {
@@ -66,13 +68,12 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
         mMap.setMyLocationEnabled(true);
         setLatLongFromAddress("srcDrvAddress", R.id.drvsrc, "srcCoord");
         setLatLongFromAddress("destDrvAddress", R.id.drvsrc, "destCoord");
-
         //Location userLocation = mMap.getMyLocation();
-        LatLng myLocation = null;
-        if (coord != null) {
+        LatLng coord = coords.get("srcCoord");
+
+        if ( coord != null) {
             //myLocation = new LatLng(47.6356639, -122.3432309);
-            myLocation = new LatLng(coord.latitude, coord.longitude);
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation,
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(coord,
                     mMap.getMaxZoomLevel() - 5));
 
             setUpMap(coord.latitude, coord.longitude);
@@ -140,7 +141,14 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
 
     public static String formatAddressForUri(String address)
     {
-        if(address != null) {
+        try {
+            if (address != null) {
+                // return address.trim().replaceAll(" +", "%20");
+                return URLEncoder.encode(address, "UTF-8");
+            }
+        }
+        catch(UnsupportedEncodingException ex)
+        {
             return address.trim().replaceAll(" +", "%20");
         }
 
