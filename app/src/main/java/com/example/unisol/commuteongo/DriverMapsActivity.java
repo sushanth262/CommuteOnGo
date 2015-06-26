@@ -40,7 +40,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.HashMap;
 
 public class DriverMapsActivity extends FragmentActivity implements LocationListener {
     private int REQUEST_CODE_RECOVER_PLAY_SERVICES = 1001;
@@ -53,33 +52,17 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
 
     private LocationRequest mLocationRequest;
 
-    private static HashMap<String, LatLng> coords;
-    private static LatLng destination;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_driver_maps);
-        coords = new HashMap<String, LatLng>();
+
         setUpMapIfNeeded();
 
         mMap.clear();
 
         mMap.setMyLocationEnabled(true);
-        setLatLongFromAddress("srcDrvAddress", R.id.drvsrc, "srcCoord");
-        setLatLongFromAddress("destDrvAddress", R.id.drvsrc, "destCoord");
-        //Location userLocation = mMap.getMyLocation();
-        LatLng coord = coords.get("srcCoord");
-
-        if ( coord != null) {
-            //myLocation = new LatLng(47.6356639, -122.3432309);
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(coord,
-                    mMap.getMaxZoomLevel() - 5));
-
-            setUpMap(coord.latitude, coord.longitude);
-            //setUpMap(47.6356639, -122.3432309);
-        }
-
+        getLatLongFromAddress();
         /* LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
         Criteria criteria = new Criteria();
         String provider = service.getBestProvider(criteria, false);
@@ -98,7 +81,6 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
         }*/
     }
 
-
     @Override
     protected void onResume() {
         super.onResume();
@@ -109,34 +91,9 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
     public void onLocationChanged(Location location) {
         // TODO Auto-generated method stub
     }
-        @Override
+    @Override
     public void onProviderDisabled(String provider) {
         // TODO Auto-generated method stub
-    }
-
-    public static LatLng getGeoCodeInformation(StringBuilder output, LocationManager service)
-    {
-        Criteria criteria = new Criteria();
-        String provider = service.getBestProvider(criteria, false);
-        Location userLocation = service.getLastKnownLocation(provider);
-        JSONObject jsonObject = new JSONObject();
-        LatLng coord;
-
-        try {
-            jsonObject = new JSONObject(output.toString());
-
-            double lng = ((JSONArray) jsonObject.get("results")).getJSONObject(0)
-                    .getJSONObject("geometry").getJSONObject("location")
-                    .getDouble("lng");
-
-            double lat = ((JSONArray) jsonObject.get("results")).getJSONObject(0)
-                    .getJSONObject("geometry").getJSONObject("location")
-                    .getDouble("lat");
-            return new LatLng(lat, lng);
-        } catch (JSONException e) {
-            e.printStackTrace();
-            return new LatLng(userLocation.getLatitude(), userLocation.getLongitude());
-        }
     }
 
     public static String formatAddressForUri(String address)
@@ -155,15 +112,16 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
         return null;
     }
 
-    public void setLatLongFromAddress(String addressKey, int id, final String coordinatesKey) {
-        EditText addressButton = (EditText) findViewById(id);
+    public void getLatLongFromAddress() {
+        EditText addressButton = (EditText) findViewById(R.id.drvsrc);
 
         Intent intent = getIntent();
         String srcAddress = null;
         String destAddress = null;
 
         if (null != intent) {
-            srcAddress = formatAddressForUri(intent.getStringExtra(addressKey));
+            srcAddress = formatAddressForUri(intent.getStringExtra("srcDrvAddress"));
+            destAddress = intent.getStringExtra("destDrvAddress");
         }
 
         if ((srcAddress != null) &&
@@ -173,12 +131,48 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
 
             StringBuilder stringBuilder;
 
+
             AsycnGeoCode asyncTask = new AsycnGeoCode(new AsyncResponse() {
+
                 @Override
                 public void processFinish(StringBuilder output) {
                     LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
-                    coords.put(coordinatesKey, DriverMapsActivity.getGeoCodeInformation(output, service));
+                    Criteria criteria = new Criteria();
+                    String provider = service.getBestProvider(criteria, false);
+                    Location userLocation = service.getLastKnownLocation(provider);
+                    JSONObject jsonObject = new JSONObject();
+                    LatLng coord;
+
+                    try {
+                        jsonObject = new JSONObject(output.toString());
+
+                        double lng = ((JSONArray) jsonObject.get("results")).getJSONObject(0)
+                                .getJSONObject("geometry").getJSONObject("location")
+                                .getDouble("lng");
+
+                        double lat = ((JSONArray) jsonObject.get("results")).getJSONObject(0)
+                                .getJSONObject("geometry").getJSONObject("location")
+                                .getDouble("lat");
+                        coord = new LatLng(lat, lng);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        coord = new LatLng(userLocation.getLatitude(), userLocation.getLongitude());
+                    }
+
+                    //Location userLocation = mMap.getMyLocation();
+                    LatLng myLocation = null;
+                    if (coord != null) {
+                        //myLocation = new LatLng(47.6356639, -122.3432309);
+                        myLocation = new LatLng(coord.latitude, coord.longitude);
+                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation,
+                                mMap.getMaxZoomLevel() - 5));
+
+                        setUpMap(coord.latitude, coord.longitude);
+                        //setUpMap(47.6356639, -122.3432309);
+                    }
+
                 }
+
             });
 
             asyncTask.execute(uri);
@@ -282,8 +276,8 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
                * SERVICE_MISSING, SERVICE_VERSION_UPDATE_REQUIRED,
                * SERVICE_DISABLED, SERVICE_INVALID.
                */
-                   Dialog d = GooglePlayServicesUtil.getErrorDialog(checkGooglePlayServices,
-                           this, REQUEST_CODE_RECOVER_PLAY_SERVICES);
+                    Dialog d = GooglePlayServicesUtil.getErrorDialog(checkGooglePlayServices,
+                            this, REQUEST_CODE_RECOVER_PLAY_SERVICES);
                     d.show();
                 }
             }
@@ -301,3 +295,4 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
         mMap.addMarker(new MarkerOptions().position(new LatLng(lat, lng)).title("Marker"));
     }
 }
+
