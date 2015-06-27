@@ -103,8 +103,8 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
         String destAddress = null;
 
         if (null != intent) {
-            srcAddress = formatAddressForUri(intent.getStringExtra("srcDrvAddress"));
-            destAddress = formatAddressForUri(intent.getStringExtra("destDrvAddress"));
+            srcAddress = formatAddressForUri(intent.getStringExtra("srcDrvAddress").trim());
+            destAddress = formatAddressForUri(intent.getStringExtra("destDrvAddress").trim());
             if(srcAddress == null || destAddress == null)
             {
                 getCurrentLocation();
@@ -166,8 +166,13 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
             Location loc;
             List<Address> addresses;
             try {
-                if (address.toLowerCase().equals("current location")) {
+                if (address.toLowerCase().trim().equals("current+location") ||
+                        address.toLowerCase().trim().equals("enter+destination")) {
                     loc = getCurrentLocation();
+                    if(loc == null)
+                    {
+                        throw new IOException("Location came back null");
+                    }
                     return coder.getFromLocation(loc.getLatitude(), loc.getLongitude(), 5);
                 } else {
                     return coder.getFromLocationName(address, 5);
@@ -306,6 +311,7 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
         LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
         Criteria criteria = new Criteria();
         String provider = service.getBestProvider(criteria, false);
+        service.requestLocationUpdates(provider, 20000, 0, this);
         return service.getLastKnownLocation(provider);
     }
 }
