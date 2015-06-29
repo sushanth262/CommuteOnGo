@@ -38,9 +38,8 @@ public class MainActivity extends Activity {
 
         b2.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
-                Toast msg = Toast.makeText(getBaseContext(),
-                        "You have clicked Button 2", Toast.LENGTH_LONG);
-                msg.show();
+                Intent intent = new Intent(v.getContext(), DriverRouteActivity.class);
+                startActivity(intent);
             }
         });
 
