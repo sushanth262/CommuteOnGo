@@ -305,7 +305,7 @@ public class DriverMapsActivity extends FragmentActivity implements LocationList
     }
 
 
-
+    /*Gets Current location based on gps*/
     public Location getCurrentLocation()
     {
         LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
